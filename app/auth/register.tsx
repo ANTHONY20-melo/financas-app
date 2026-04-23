@@ -36,8 +36,14 @@ export default function Register() {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.replace('/auth/login')} style={{ marginTop: 20 }}>
-          <Text style={styles.linkText}>Já tens conta? <Text style={{ color: '#10B981', fontWeight: 'bold' }}>Entrar</Text></Text>
+          <Text style={styles.linkText}>Já tem conta? <Text style={{ color: '#10B981', fontWeight: 'bold' }}>Entrar</Text></Text>
         </TouchableOpacity>
+
+        {Platform.OS === 'web' && (
+          <TouchableOpacity onPress={() => router.replace('/')} style={{ marginTop: 15, borderTopWidth: 1, borderColor: '#334155', paddingTop: 15 }}>
+            <Text style={[styles.linkText, { color: '#38BDF8' }]}>← Voltar para o site</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </KeyboardAvoidingView>
   );

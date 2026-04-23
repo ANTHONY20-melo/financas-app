@@ -1,7 +1,7 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabase';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
@@ -33,13 +33,23 @@ export default function RootLayout() {
     if (!isReady) return;
 
     const inAuthGroup = segments[0] === 'auth';
-     const isLandingPage = (segments as string[]).length === 0;
-    // Se NÃO estiver logado e tentar acessar uma página que não seja a Landing Page ou o Login
-    if (!session && !inAuthGroup && !isLandingPage) {
-      router.replace('/auth/login' as any);
-    } 
-    // Se ESTIVER logado e tentar acessar a página de Login/Registro, manda para o app
-    else if (session && inAuthGroup) {
+    const isLandingPage = (segments as string[]).length === 0;
+
+    if (!session) {
+      // Caso Mobile: Se não estiver logado, obriga ir para o Login (ignora Landing Page)
+      if (Platform.OS !== 'web') {
+        if (!inAuthGroup) {
+          router.replace('/auth/login' as any);
+        }
+      } 
+      // Caso Web: Permite Landing Page, mas protege outras rotas
+      else {
+        if (!inAuthGroup && !isLandingPage) {
+          router.replace('/auth/login' as any);
+        }
+      }
+    } else if (session && inAuthGroup) {
+      // Se já estiver logado e tentar entrar em Login/Register, vai para o Dashboard
       router.replace('/dashboard' as any);
     }
   }, [session, segments, isReady]);
@@ -56,6 +66,7 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />          {/* Landing Page Pública */}
       <Stack.Screen name="dashboard" />      {/* Seu App Real */}
+      <Stack.Screen name="admin" />          {/* Painel Admin */}
       <Stack.Screen name="auth/login" />     {/* Login */}
       <Stack.Screen name="auth/register" />  {/* Registro */}
     </Stack>

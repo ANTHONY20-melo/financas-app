@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native'; // Adicionado useWindowDimensions
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, useWindowDimensions, Animated } from 'react-native'; 
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../supabase';
@@ -13,6 +13,16 @@ export default function LandingPage() {
   const testimonialScrollRef = useRef<ScrollView>(null);
   const [scrollPos, setScrollRef] = useState(0);
   const testimonialWidth = 320; // largura do card + gap
+
+  const entryAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(entryAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   useEffect(() => {
     if (Platform.OS === 'web' && width > 800) {
@@ -45,7 +55,8 @@ export default function LandingPage() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <Animated.View style={[styles.container, { opacity: entryAnim }]}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
       
       {/* Header */}
       <View style={styles.header}>
@@ -72,7 +83,9 @@ export default function LandingPage() {
       </View>
 
       {/* Hero Section */}
-      <View style={styles.heroSection}>
+      <View style={[
+        styles.heroSection,
+      ]}>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>🚀 Inteligência Financeira Simples</Text>
         </View>
@@ -185,7 +198,8 @@ export default function LandingPage() {
         <Text style={styles.footerText}>© 2026 My Money App. Todos os direitos reservados.</Text>
       </View>
 
-    </ScrollView>
+      </ScrollView>
+    </Animated.View>
   );
 }
 

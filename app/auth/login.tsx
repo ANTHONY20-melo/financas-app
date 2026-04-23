@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar, Linking } from 'react-native';
 import { supabase } from '../../supabase';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,11 +13,26 @@ export default function Login() {
   async function fazerLogin() {
     if (!email || !password) return Alert.alert('Aviso', 'Preenche todos os campos.');
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (data?.user) {
+      // Verificar se o utilizador está bloqueado na tabela profiles
+      const { data: profile } = await supabase.from('profiles').select('is_blocked').eq('id', data.user.id).single();
+      
+      if (profile?.is_blocked) {
+        await supabase.auth.signOut();
+        setLoading(false);
+        return Alert.alert(
+          'Acesso Restrito ⛔',
+          'A tua conta foi suspensa por um administrador. Entra em contacto com o suporte para resolver a situação.',
+          [{ text: 'Contactar Suporte', onPress: () => Linking.openURL('https://wa.me/351900000000?text=Olá, minha conta no My Money foi bloqueada.') }, { text: 'Fechar' }]
+        );
+      }
+    }
+
+    setLoading(false);
     if (error) Alert.alert('Erro no Login', error.message);
-    // Se o login for bem sucedido, o _layout encarrega-se de enviar o utilizador para a Home (index)
   }
 
   return (
@@ -36,8 +51,14 @@ export default function Login() {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.push('/auth/register')} style={{ marginTop: 20 }}>
-          <Text style={styles.linkText}>Não tens conta? <Text style={{ color: '#38BDF8', fontWeight: 'bold' }}>Regista-te</Text></Text>
+          <Text style={styles.linkText}>Não tem conta? <Text style={{ color: '#38BDF8', fontWeight: 'bold' }}>Regista-te</Text></Text>
         </TouchableOpacity>
+
+        {Platform.OS === 'web' && (
+          <TouchableOpacity onPress={() => router.replace('/')} style={{ marginTop: 15, borderTopWidth: 1, borderColor: '#334155', paddingTop: 15 }}>
+            <Text style={[styles.linkText, { color: '#38BDF8' }]}>← Voltar para o site</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </KeyboardAvoidingView>
   );

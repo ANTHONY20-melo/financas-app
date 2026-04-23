@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Modal, 
   Keyboard, TouchableWithoutFeedback, KeyboardAvoidingView, Platform,
-  Dimensions, FlatList, ScrollView, Switch, ActivityIndicator, StatusBar
+  Dimensions, FlatList, ScrollView, Switch, ActivityIndicator, StatusBar, LayoutAnimation, UIManager
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PieChart } from "react-native-chart-kit";
@@ -13,6 +13,11 @@ import * as Sharing from 'expo-sharing';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../supabase';
 import Constants from 'expo-constants';
+
+// Habilitar animações no Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const { width } = Dimensions.get("window");
 const MESES = [
@@ -37,6 +42,10 @@ const CATEGORIAS_DESPESA = [
   { label: 'Contas', icon: 'receipt' },
   { label: 'Outros', icon: 'ellipsis-horizontal' },
 ];
+
+const DASHBOARD_MAX_WIDTH = 1200;
+const SIDEBAR_WIDTH = 300;
+const isPC = Platform.OS === 'web' && width > 1024;
 
 const formatarMoeda = (valor: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
@@ -94,6 +103,7 @@ export default function HomeScreen() {
   }, []);
 
   const fetchTransacoes = async () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
@@ -105,17 +115,29 @@ export default function HomeScreen() {
   };
 
   const confirmarLogout = () => {
-    Alert.alert(
-      "Sair da Conta",
-      "Tens a certeza que desejas encerrar a sessão?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Sair", style: "destructive", onPress: async () => {
-          await supabase.auth.signOut();
-          router.replace('/auth/login');
-        }}
-      ]
-    );
+    const logout = async () => {
+      await supabase.auth.signOut();
+      if (Platform.OS === 'web') {
+        router.replace('/');
+      } else {
+        router.replace('/auth/login');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (confirm("Tens a certeza que desejas encerrar a sessão?")) {
+        logout();
+      }
+    } else {
+      Alert.alert(
+        "Sair da Conta",
+        "Tens a certeza que desejas encerrar a sessão?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Sair", style: "destructive", onPress: logout }
+        ]
+      );
+    }
   };
 
   const salvar = async () => {
@@ -145,6 +167,7 @@ export default function HomeScreen() {
       const { data, error } = await supabase.from('transacoes').insert(transacoesParaInserir).select();
       if (error) throw error;
       if (data) {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         fetchTransacoes();
         setModalVisivel(false);
         setDescricao(''); setValor(''); setRecorrente(false);
@@ -158,6 +181,7 @@ export default function HomeScreen() {
     Alert.alert("Apagar", "Remover este registo?", [
       { text: "Não", style: "cancel" },
       { text: "Sim", style: "destructive", onPress: async () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         const { error } = await supabase.from('transacoes').delete().eq('id', id);
         if (!error) setTransacoes(transacoes.filter(t => t.id !== id));
       }}
@@ -407,11 +431,69 @@ export default function HomeScreen() {
     </View>
   );
 
+  const renderSettingsContent = (isInSidebar = false) => (
+    <View style={isInSidebar ? styles.sidebarInner : styles.settingsSection}>
+      {!isInSidebar && (
+        <View style={styles.profileHeader}>
+          <View style={[styles.profileAvatar, { backgroundColor: isDark ? '#38BDF820' : '#38BDF810' }]}>
+            <Ionicons name="person" size={40} color="#38BDF8" />
+          </View>
+          <View>
+            <Text style={[styles.profileLabel, { color: cores.subtexto }]}>Bem-vindo,</Text>
+            <Text style={[styles.profileEmail, { color: cores.texto }]}>{userEmail.split('@')[0]}</Text>
+          </View>
+        </View>
+      )}
+
+      <View style={[styles.settingsRow, { borderColor: cores.borda }]}>
+        <View style={styles.settingsInfo}>
+          <Ionicons name={isDark ? "moon" : "sunny"} size={22} color="#38BDF8" />
+          <Text style={[styles.settingsText, { color: cores.texto }]}>Modo Escuro</Text>
+        </View>
+        <Switch value={isDark} onValueChange={setIsDark} trackColor={{ false: "#64748B", true: "#38BDF8" }} />
+      </View>
+
+      {userEmail === 'admin@admin.com' && (
+        <TouchableOpacity style={[styles.settingsRow, { borderColor: cores.borda }]} onPress={() => router.push('/admin' as any)}>
+          <View style={styles.settingsInfo}>
+            <Ionicons name="shield-checkmark-outline" size={22} color="#8B5CF6" />
+            <Text style={[styles.settingsText, { color: cores.texto }]}>Painel Admin</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      <TouchableOpacity style={[styles.settingsRow, { borderColor: cores.borda }]} onPress={exportarParaPDF}>
+        <View style={styles.settingsInfo}>
+          <Ionicons name="document-text-outline" size={22} color="#38BDF8" />
+          <Text style={[styles.settingsText, { color: cores.texto }]}>Exportar PDF</Text>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={[styles.settingsRow, { borderColor: cores.borda }]} onPress={confirmarLogout}>
+        <View style={styles.settingsInfo}>
+          <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+          <Text style={[styles.settingsText, { color: '#EF4444' }]}>Sair</Text>
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
-    <View style={[styles.container, { backgroundColor: cores.fundo }]}>
+    <View style={[styles.container, { backgroundColor: cores.fundo, flexDirection: isPC ? 'row' : 'column' }]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+
+      {isPC && (
+        <View style={[styles.sidebarContainer, { backgroundColor: cores.card, borderColor: cores.borda }]}>
+          <Text style={[styles.logoTextSidebar, { color: cores.texto }]}>My Money</Text>
+          <View style={styles.sidebarProfile}>
+            <Text style={[styles.profileEmail, { color: cores.texto, fontSize: 16 }]}>{userEmail}</Text>
+          </View>
+          {renderSettingsContent(true)}
+        </View>
+      )}
       
-      {renderHeaderFixo()}
+      <View style={{ flex: 1 }}>
+        {renderHeaderFixo()}
 
       <FlatList
         data={listaExibida} 
@@ -455,8 +537,9 @@ export default function HomeScreen() {
           </View>
         )}
       />
+      </View>
       
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisivel(true)}>
+      <TouchableOpacity style={[styles.fab, isPC && { right: 50, bottom: 50 }]} onPress={() => setModalVisivel(true)}>
         <Ionicons name="add" size={30} color="#020617" />
       </TouchableOpacity>
 
@@ -465,16 +548,23 @@ export default function HomeScreen() {
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.modalBody, { backgroundColor: cores.card, borderColor: cores.borda }]}>
               <View style={styles.modalHeader}>
-                <Text style={[styles.modalTitle, { color: cores.texto }]}>Novo Registo</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                   <View style={{ backgroundColor: '#38BDF820', padding: 8, borderRadius: 10 }}>
+                      <Ionicons name="add-circle" size={24} color="#38BDF8" />
+                   </View>
+                   <Text style={[styles.modalTitle, { color: cores.texto }]}>Novo Registo</Text>
+                </View>
                 <TouchableOpacity onPress={() => setModalVisivel(false)}><Ionicons name="close" size={28} color="#94A3B8" /></TouchableOpacity>
               </View>
 
               <View style={styles.seletorTipo}>
                 <TouchableOpacity style={[styles.btnTipo, tipoAtual === 'receita' && styles.btnTipoAtivoVerde, { borderColor: cores.borda }]} onPress={() => setTipoAtual('receita')}>
-                  <Text style={[styles.txtTipo, tipoAtual === 'receita' && {color: '#FFF'}]}>Receita</Text>
+                  <Ionicons name="trending-up" size={18} color={tipoAtual === 'receita' ? '#FFF' : '#10B981'} style={{ marginRight: 8 }} />
+                  <Text style={[styles.txtTipo, tipoAtual === 'receita' && {color: '#FFF'}]}>Entrada</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.btnTipo, tipoAtual === 'despesa' && styles.btnTipoAtivoVermelho, { borderColor: cores.borda }]} onPress={() => setTipoAtual('despesa')}>
-                  <Text style={[styles.txtTipo, tipoAtual === 'despesa' && {color: '#FFF'}]}>Despesa</Text>
+                  <Ionicons name="trending-down" size={18} color={tipoAtual === 'despesa' ? '#FFF' : '#EF4444'} style={{ marginRight: 8 }} />
+                  <Text style={[styles.txtTipo, tipoAtual === 'despesa' && {color: '#FFF'}]}>Saída</Text>
                 </TouchableOpacity>
               </View>
              
@@ -615,6 +705,27 @@ export default function HomeScreen() {
                 <Switch value={isDark} onValueChange={setIsDark} trackColor={{ false: "#64748B", true: "#38BDF8" }} />
               </View>
 
+              {/* BOTÃO ADMIN - Visível apenas para e-mail específico (Ex: admin@admin.com) */}
+              {userEmail === 'admin@admin.com' && (
+                <TouchableOpacity style={[styles.settingsRow, { borderColor: cores.borda }]} onPress={() => { setSettingsModalVisivel(false); router.push('/admin' as any); }}>
+                  <View style={styles.settingsInfo}>
+                    <Ionicons name="shield-checkmark-outline" size={22} color="#8B5CF6" />
+                    <Text style={[styles.settingsText, { color: cores.texto }]}>Painel Administrativo</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={cores.subtexto} />
+                </TouchableOpacity>
+              )}
+
+              {Platform.OS === 'web' && (
+                <TouchableOpacity style={[styles.settingsRow, { borderColor: cores.borda }]} onPress={() => router.replace('/')}>
+                  <View style={styles.settingsInfo}>
+                    <Ionicons name="globe-outline" size={22} color="#38BDF8" />
+                    <Text style={[styles.settingsText, { color: cores.texto }]}>Voltar ao Site</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={cores.subtexto} />
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity style={[styles.settingsRow, { borderColor: cores.borda }]} onPress={exportarParaPDF}>
                 <View style={styles.settingsInfo}>
                   <Ionicons name="document-text-outline" size={22} color="#38BDF8" />
@@ -647,8 +758,12 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  headerFixoContainer: { zIndex: 10, elevation: 5, backgroundColor: 'transparent' },
-  headerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: Constants.statusBarHeight + 10, marginBottom: 20, paddingHorizontal: 20 },
+  sidebarContainer: { width: SIDEBAR_WIDTH, height: '100%', borderRightWidth: 1, padding: 25, paddingTop: 50 },
+  logoTextSidebar: { fontSize: 28, fontWeight: 'bold', marginBottom: 30 },
+  sidebarProfile: { marginBottom: 30, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#334155' },
+  sidebarInner: { gap: 5 },
+  headerFixoContainer: { zIndex: 10, elevation: 5, backgroundColor: 'transparent', width: '100%', maxWidth: DASHBOARD_MAX_WIDTH, alignSelf: 'center' },
+  headerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: Constants.statusBarHeight + 10, marginBottom: 20, paddingHorizontal: 20, width: '100%' },
   titulo: { fontSize: 26, fontWeight: 'bold' },
   btnTop: { padding: 8, borderRadius: 12, borderWidth: 1 },
   anoContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 20, marginBottom: 15 },
@@ -662,7 +777,7 @@ const styles = StyleSheet.create({
   extratoSelector: { flexDirection: 'row', marginBottom: 20, gap: 20, justifyContent: 'center' },
   extratoBtn: { paddingVertical: 5, paddingHorizontal: 10 },
   extratoBtnTxt: { fontWeight: 'bold', fontSize: 16 },
-  resumoContainer: { marginBottom: 10, paddingHorizontal: 20, marginTop: 10 },
+  resumoContainer: { marginBottom: 10, paddingHorizontal: 20, marginTop: 10, width: '100%', maxWidth: DASHBOARD_MAX_WIDTH, alignSelf: 'center' },
   cartaoSaldo: { padding: 25, borderRadius: 20, alignItems: 'center', marginBottom: 15 },
   cartaoTitulo: { color: '#94A3B8', fontSize: 16, marginBottom: 5 },
   cartaoValor: { fontSize: 36, fontWeight: 'bold' },
@@ -675,11 +790,11 @@ const styles = StyleSheet.create({
   cartaoPequeno: { padding: 15, borderRadius: 15, width: '48%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   textoVerde: { color: '#10B981', fontWeight: 'bold', fontSize: 16 },
   textoVermelho: { color: '#EF4444', fontWeight: 'bold', fontSize: 16 },
-  graficoContainer: { alignItems: 'center', borderRadius: 15, padding: 15, marginBottom: 10, marginHorizontal: 20 },
-  filtrosContainer: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 15, gap: 10 },
+  graficoContainer: { alignItems: 'center', borderRadius: 15, padding: 15, marginBottom: 10, marginHorizontal: 20, maxWidth: DASHBOARD_MAX_WIDTH - 40, alignSelf: 'center' },
+  filtrosContainer: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 15, gap: 10, maxWidth: DASHBOARD_MAX_WIDTH, alignSelf: 'center' },
   chipFiltro: { paddingVertical: 8, paddingHorizontal: 15, borderRadius: 15 },
   txtChip: { fontWeight: 'bold', color: '#94A3B8' },
-  containerItem: { paddingHorizontal: 20 },
+  containerItem: { paddingHorizontal: 20, width: '100%', maxWidth: DASHBOARD_MAX_WIDTH, alignSelf: 'center' },
   itemLista: { padding: 18, borderRadius: 15, flexDirection: 'row', marginBottom: 12, borderWidth: 1 },
   iconCategory: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 15 },
   itemDesc: { fontSize: 16, fontWeight: 'bold', lineHeight: 20 },
@@ -688,7 +803,7 @@ const styles = StyleSheet.create({
   itemValor: { fontSize: 15, fontWeight: 'bold', textAlign: 'right', minWidth: 90 },
   itemAcoes: { flexDirection: 'row', alignItems: 'center', marginLeft: 10, gap: 10 },
   btnAcaoLista: { padding: 4 },
-  searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, paddingHorizontal: 15, height: 45, borderRadius: 12, borderWidth: 1, marginBottom: 15 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, paddingHorizontal: 15, height: 45, borderRadius: 12, borderWidth: 1, marginBottom: 15, maxWidth: DASHBOARD_MAX_WIDTH - 40, alignSelf: 'center', width: '100%' },
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
   fab: { position: 'absolute', bottom: 30, right: 30, width: 65, height: 65, borderRadius: 35, backgroundColor: '#38BDF8', alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#38BDF8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
@@ -696,11 +811,11 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   modalTitle: { fontSize: 22, fontWeight: 'bold' },
   seletorTipo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  btnTipo: { flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, alignItems: 'center', marginHorizontal: 5 },
+  btnTipo: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginHorizontal: 5, flexDirection: 'row' },
   txtTipo: { color: '#94A3B8', fontWeight: 'bold' }, 
   btnTipoAtivoVerde: { backgroundColor: '#10B981', borderColor: '#10B981' }, 
   btnTipoAtivoVermelho: { backgroundColor: '#EF4444', borderColor: '#EF4444' },
-  input: { padding: 15, borderRadius: 10, marginBottom: 15, borderWidth: 1 },
+  input: { padding: 15, borderRadius: 12, marginBottom: 15, borderWidth: 1, fontSize: 16 },
   btnCalendario: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 10, marginBottom: 15, borderWidth: 1 },
   switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 5 },
   parcelasContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingHorizontal: 5 },
