@@ -36,8 +36,8 @@ export default function Login() {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#020617" />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={false} />
       <View style={styles.content}>
         <Ionicons name="wallet" size={80} color="#38BDF8" style={{ alignSelf: 'center', marginBottom: 20 }} />
         <Text style={styles.title}>My Money</Text>
@@ -60,7 +60,7 @@ export default function Login() {
           </TouchableOpacity>
         )}
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

@@ -58,8 +58,11 @@ export default function HomeScreen() {
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [modalVisivel, setModalVisivel] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [descricao, setDescricao] = useState('');
+  const [metaPoupanca, setMetaPoupanca] = useState('500'); // Nova meta padrão
   const [valor, setValor] = useState('');
   const [tipoAtual, setTipoAtual] = useState('receita');
   const [categoriaSel, setCategoriaSel] = useState('Geral');
@@ -108,6 +111,11 @@ export default function HomeScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       setUserEmail(session.user.email || '');
+      
+      // Busca perfil do usuário
+      const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', session.user.id).single();
+      setUserName(profile?.full_name || session.user.email?.split('@')[0] || '');
+
       const { data } = await supabase.from('transacoes').select('*').eq('user_id', session.user.id).order('id', { ascending: false });
       if (data) setTransacoes(data);
     }
@@ -137,6 +145,28 @@ export default function HomeScreen() {
           { text: "Sair", style: "destructive", onPress: logout }
         ]
       );
+    }
+  };
+
+  const atualizarPerfil = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { error } = await supabase.from('profiles').upsert({
+        id: session.user.id,
+        full_name: userName,
+        email: userEmail // Incluído para garantir que o perfil seja criado/atualizado corretamente
+      });
+
+      if (error) throw error;
+      setIsEditingProfile(false);
+      
+      if (Platform.OS === 'web') window.alert("Perfil atualizado com sucesso!");
+      else Alert.alert("Sucesso", "Perfil atualizado!");
+    } catch (err: any) { 
+      if (Platform.OS === 'web') window.alert("Erro ao atualizar perfil.");
+      else Alert.alert("Erro", "Não foi possível atualizar o perfil."); 
     }
   };
 
@@ -186,6 +216,22 @@ export default function HomeScreen() {
         if (!error) setTransacoes(transacoes.filter(t => t.id !== id));
       }}
     ]);
+    const deletar = async () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      const { error } = await supabase.from('transacoes').delete().eq('id', id);
+      if (!error) setTransacoes(transacoes.filter(t => t.id !== id));
+    };
+
+    if (Platform.OS === 'web') {
+      if (confirm("Remover este registo?")) {
+        deletar();
+      }
+    } else {
+      Alert.alert("Apagar", "Remover este registo?", [
+        { text: "Não", style: "cancel" },
+        { text: "Sim", style: "destructive", onPress: deletar }
+      ]);
+    }
   };
 
   const centrarMes = (index: number) => {
@@ -282,8 +328,13 @@ export default function HomeScreen() {
     `;
 
     try {
-      const { uri } = await Print.printToFileAsync({ html: htmlContent });
-      await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      if (Platform.OS === 'web') {
+        // No PC, abre o diálogo de impressão que permite salvar como PDF
+        await Print.printAsync({ html: htmlContent });
+      } else {
+        const { uri } = await Print.printToFileAsync({ html: htmlContent });
+        await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+      }
     } catch (error) {
       Alert.alert("Erro", "Não foi possível gerar o PDF.");
     }
@@ -299,7 +350,14 @@ export default function HomeScreen() {
   };
 
   const analisarComIA = () => {
-    if (transacoesFiltradas.length === 0) return Alert.alert("Ops", "Sem dados para analisar.");
+    if (transacoesFiltradas.length === 0) {
+      if (Platform.OS === 'web') {
+        window.alert("Ops! Sem dados para analisar.");
+      } else {
+        Alert.alert("Ops", "Sem dados para analisar.");
+      }
+      return;
+    }
     setModalIAVisivel(true);
     setIsAILoading(true);
     setTimeout(() => {
@@ -330,11 +388,13 @@ export default function HomeScreen() {
     <View style={styles.headerFixoContainer}>
       <View style={styles.headerContainer}>
         <Text style={[styles.titulo, { color: cores.texto }]}>My Money</Text>
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <TouchableOpacity onPress={() => setSettingsModalVisivel(true)} style={[styles.btnTop, { backgroundColor: cores.cardSecundario, borderColor: cores.borda }]}>
-            <Ionicons name="settings-outline" size={24} color="#38BDF8" />
-          </TouchableOpacity>
-        </View>
+        {!isPC && (
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity onPress={() => setSettingsModalVisivel(true)} style={[styles.btnTop, { backgroundColor: cores.cardSecundario, borderColor: cores.borda }]}>
+              <Ionicons name="settings-outline" size={24} color="#38BDF8" />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {modoExtrato === 'mensal' && (
@@ -433,17 +493,88 @@ export default function HomeScreen() {
 
   const renderSettingsContent = (isInSidebar = false) => (
     <View style={isInSidebar ? styles.sidebarInner : styles.settingsSection}>
-      {!isInSidebar && (
-        <View style={styles.profileHeader}>
-          <View style={[styles.profileAvatar, { backgroundColor: isDark ? '#38BDF820' : '#38BDF810' }]}>
-            <Ionicons name="person" size={40} color="#38BDF8" />
+      {isInSidebar && (
+        <View style={{ backgroundColor: '#1E293B', padding: 15, borderRadius: 15, marginBottom: 20, borderWidth: 1, borderColor: '#334155' }}>
+          <Text style={{ color: '#38BDF8', fontWeight: 'bold', fontSize: 12, marginBottom: 10 }}>META DE POUPANÇA</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+             <Text style={{ color: '#FFF', fontSize: 14 }}>{formatarMoeda(saldo > 0 ? saldo : 0)}</Text>
+             <Text style={{ color: cores.subtexto, fontSize: 12 }}>Alvo: {formatarMoeda(Number(metaPoupanca))}</Text>
           </View>
-          <View>
-            <Text style={[styles.profileLabel, { color: cores.subtexto }]}>Bem-vindo,</Text>
-            <Text style={[styles.profileEmail, { color: cores.texto }]}>{userEmail.split('@')[0]}</Text>
+          <View style={{ height: 6, backgroundColor: '#020617', borderRadius: 3, overflow: 'hidden' }}>
+             <View style={{ height: '100%', backgroundColor: '#10B981', width: `${Math.min((Math.max(saldo, 0) / Number(metaPoupanca)) * 100, 100)}%` }} />
           </View>
+          <TextInput style={{ color: '#38BDF8', fontSize: 11, marginTop: 10, borderBottomWidth: 1, borderColor: '#334155' }} value={metaPoupanca} onChangeText={setMetaPoupanca} placeholder="Definir nova meta" keyboardType="numeric" />
         </View>
       )}
+
+      <View style={[styles.profileHeader, isInSidebar && { marginBottom: 20 }]}>
+        <TouchableOpacity 
+          onPress={() => setIsEditingProfile(!isEditingProfile)}
+          style={[styles.profileAvatar, { backgroundColor: isDark ? '#38BDF820' : '#38BDF810' }]}
+        >
+          <Ionicons name="person" size={isInSidebar ? 32 : 40} color="#38BDF8" />
+          <View style={styles.editBadge}><Ionicons name="create" size={12} color="#FFF" /></View>
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          {isEditingProfile ? (
+            <View style={{ gap: 5 }}>
+              <TextInput 
+                style={[styles.inputInline, { color: cores.texto, borderColor: '#38BDF8' }]} 
+                value={userName} 
+                onChangeText={setUserName} 
+                placeholder="Teu nome" 
+                placeholderTextColor={cores.subtexto} 
+              />
+              <TouchableOpacity onPress={atualizarPerfil} style={styles.btnSaveProfile}><Text style={{ color: '#020617', fontWeight: 'bold', fontSize: 12 }}>Guardar Alterações</Text></TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <Text style={[styles.profileLabel, { color: cores.subtexto, fontSize: isInSidebar ? 12 : 14 }]}>
+                {isInSidebar ? 'Utilizador' : 'Bem-vindo,'}
+              </Text>
+              <Text style={[styles.profileEmail, { color: cores.texto, fontSize: isInSidebar ? 14 : 18 }]} numberOfLines={1}>
+                {userName}
+              </Text>
+            </>
+          )}
+        </View>
+      </View>
+
+      {isInSidebar && (
+        <View style={{ backgroundColor: '#38BDF810', padding: 15, borderRadius: 15, marginBottom: 20, borderWidth: 1, borderColor: '#38BDF820' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+            <Ionicons name="bulb-outline" size={16} color="#38BDF8" />
+            <Text style={{ color: '#38BDF8', fontWeight: 'bold', fontSize: 12 }}>DICA DO DIA</Text>
+          </View>
+          <Text style={{ color: cores.subtexto, fontSize: 13, lineHeight: 18 }}>Poupe pelo menos 10% do seu rendimento antes de começar a gastar.</Text>
+        </View>
+      )}
+
+      {isInSidebar && (
+        <TouchableOpacity 
+          style={[styles.settingsRow, { borderColor: cores.borda }]} 
+          onPress={() => Linking.openURL(`https://wa.me/5571982998595?text=${encodeURIComponent(
+            `Olá Suporte! 👋\n\nPreciso de ajuda com o My Money App.\nUtilizador: ${userName}\nE-mail: ${userEmail}`
+          )}`)}
+        >
+          <View style={styles.settingsInfo}>
+            <Ionicons name="chatbubble-ellipses-outline" size={22} color="#10B981" />
+            <Text style={[styles.settingsText, { color: cores.texto }]}>Suporte Técnico</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      <View style={[styles.miniStatsRow, { backgroundColor: cores.cardSecundario, borderColor: cores.borda, padding: isInSidebar ? 12 : 15, marginBottom: 20 }]}>
+        <View style={styles.miniStatItem}>
+          <Text style={[styles.miniStatLabel, { fontSize: isInSidebar ? 10 : 11 }]}>Saldo</Text>
+          <Text style={[styles.miniStatValue, { color: saldo >= 0 ? '#10B981' : '#EF4444', fontSize: isInSidebar ? 14 : 15 }]}>{formatarMoeda(saldo)}</Text>
+        </View>
+        <View style={[styles.verticalDivider, { backgroundColor: cores.borda }]} />
+        <View style={styles.miniStatItem}>
+          <Text style={[styles.miniStatLabel, { fontSize: isInSidebar ? 10 : 11 }]}>Gastos</Text>
+          <Text style={[styles.miniStatValue, { color: cores.texto, fontSize: isInSidebar ? 14 : 15 }]}>{formatarMoeda(despesas)}</Text>
+        </View>
+      </View>
 
       <View style={[styles.settingsRow, { borderColor: cores.borda }]}>
         <View style={styles.settingsInfo}>
@@ -485,14 +616,11 @@ export default function HomeScreen() {
       {isPC && (
         <View style={[styles.sidebarContainer, { backgroundColor: cores.card, borderColor: cores.borda }]}>
           <Text style={[styles.logoTextSidebar, { color: cores.texto }]}>My Money</Text>
-          <View style={styles.sidebarProfile}>
-            <Text style={[styles.profileEmail, { color: cores.texto, fontSize: 16 }]}>{userEmail}</Text>
-          </View>
           {renderSettingsContent(true)}
         </View>
       )}
       
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: cores.fundo }}>
         {renderHeaderFixo()}
 
       <FlatList
@@ -500,6 +628,7 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id.toString()} 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={{ paddingBottom: 100 }}
+        style={{ backgroundColor: cores.fundo }}
         ListHeaderComponent={renderResumoLista}
         ListEmptyComponent={<Text style={{ color: cores.subtexto, textAlign: 'center', marginTop: 40, fontSize: 16 }}>Nenhum registo encontrado.</Text>}
         refreshing={loading}
@@ -543,10 +672,16 @@ export default function HomeScreen() {
         <Ionicons name="add" size={30} color="#020617" />
       </TouchableOpacity>
 
-      <Modal visible={modalVisivel} animationType="slide" transparent>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalOverlay}>
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.modalBody, { backgroundColor: cores.card, borderColor: cores.borda }]}>
+      <Modal visible={modalVisivel} animationType={isPC ? "fade" : "slide"} transparent>
+        <View style={styles.modalOverlay}>
+          {/* No PC, removemos o Touchable que captura cliques indevidamente e centralizamos o modal */}
+          <TouchableWithoutFeedback onPress={Platform.OS === 'web' ? undefined : Keyboard.dismiss}>
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+              enabled={Platform.OS !== 'web'}
+              style={[styles.modalBody, isPC && { borderRadius: 25, borderBottomLeftRadius: 25, borderBottomRightRadius: 25 }]}
+              contentContainerStyle={{ alignItems: 'center' }}
+            >
               <View style={styles.modalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                    <View style={{ backgroundColor: '#38BDF820', padding: 8, borderRadius: 10 }}>
@@ -605,18 +740,28 @@ export default function HomeScreen() {
 
               {recorrente && (
                 <View style={styles.parcelasContainer}>
-                  <Text style={{ color: cores.subtexto, fontSize: 14 }}>A 1ª parcela entrará no próximo mês.</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Text style={{ color: cores.subtexto }}>Meses:</Text>
-                    <TextInput style={[styles.inputParcela, { backgroundColor: cores.fundo, color: cores.texto, borderColor: cores.borda }]} keyboardType="numeric" value={parcelas} onChangeText={setParcelas} maxLength={3} />
+                  <Text style={{ color: cores.subtexto, fontSize: 13, fontWeight: 'bold', marginBottom: 12 }}>Em quantas vezes pretendes dividir?</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                    {['2', '3', '4', '5', '6', '10', '12', '18', '24'].map((num) => (
+                      <TouchableOpacity 
+                        key={num} 
+                        onPress={() => setParcelas(num)}
+                        style={[
+                          styles.chipParcela, 
+                          { borderColor: cores.borda, backgroundColor: parcelas === num ? '#38BDF8' : 'transparent' }
+                        ]}
+                      >
+                        <Text style={{ color: parcelas === num ? '#020617' : cores.texto, fontWeight: 'bold' }}>{num}x</Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 </View>
               )}
               
               <TouchableOpacity style={styles.btnSalvar} onPress={salvar}><Text style={styles.btnText}>Guardar</Text></TouchableOpacity>
             </KeyboardAvoidingView>
-          </View>
-        </TouchableWithoutFeedback>
+          </TouchableWithoutFeedback>
+        </View>
       </Modal>
 
       {/* MODAL DO CONSELHEIRO IA */}
@@ -797,18 +942,18 @@ const styles = StyleSheet.create({
   containerItem: { paddingHorizontal: 20, width: '100%', maxWidth: DASHBOARD_MAX_WIDTH, alignSelf: 'center' },
   itemLista: { padding: 18, borderRadius: 15, flexDirection: 'row', marginBottom: 12, borderWidth: 1 },
   iconCategory: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 15 },
-  itemDesc: { fontSize: 16, fontWeight: 'bold', lineHeight: 20 },
+  itemDesc: { fontSize: 15, fontWeight: 'bold', lineHeight: 20 },
   itemData: { fontSize: 12, color: '#64748B', marginTop: 3, lineHeight: 16 },
   itemDireita: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
-  itemValor: { fontSize: 15, fontWeight: 'bold', textAlign: 'right', minWidth: 90 },
-  itemAcoes: { flexDirection: 'row', alignItems: 'center', marginLeft: 10, gap: 10 },
+  itemValor: { fontSize: 14, fontWeight: 'bold', textAlign: 'right', minWidth: 85 },
+  itemAcoes: { flexDirection: 'row', alignItems: 'center', marginLeft: 5, gap: 5 },
   btnAcaoLista: { padding: 4 },
   searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, paddingHorizontal: 15, height: 45, borderRadius: 12, borderWidth: 1, marginBottom: 15, maxWidth: DASHBOARD_MAX_WIDTH - 40, alignSelf: 'center', width: '100%' },
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
   fab: { position: 'absolute', bottom: 30, right: 30, width: 65, height: 65, borderRadius: 35, backgroundColor: '#38BDF8', alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#38BDF8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  modalBody: { padding: 25, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, width: '100%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end' },
+  modalBody: { padding: 25, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, width: '100%', maxWidth: 500, alignSelf: 'center' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 22, fontWeight: 'bold' },
   seletorTipo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
   btnTipo: { flex: 1, padding: 14, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', marginHorizontal: 5, flexDirection: 'row' },
@@ -818,8 +963,9 @@ const styles = StyleSheet.create({
   input: { padding: 15, borderRadius: 12, marginBottom: 15, borderWidth: 1, fontSize: 16 },
   btnCalendario: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 10, marginBottom: 15, borderWidth: 1 },
   switchContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 5 },
-  parcelasContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingHorizontal: 5 },
+  parcelasContainer: { marginBottom: 20, paddingHorizontal: 5 },
   inputParcela: { padding: 10, borderRadius: 10, borderWidth: 1, width: 60, textAlign: 'center', fontSize: 16 },
+  chipParcela: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   btnSalvar: { backgroundColor: '#38BDF8', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 10 },
   btnText: { color: '#020617', fontWeight: 'bold', fontSize: 16 },
   settingsSection: { marginTop: 10 },
@@ -827,7 +973,10 @@ const styles = StyleSheet.create({
   settingsInfo: { flexDirection: 'row', alignItems: 'center', gap: 15 },
   settingsText: { fontSize: 16 },
   profileHeader: { flexDirection: 'row', alignItems: 'center', gap: 15, marginBottom: 25, marginTop: 10 },
-  profileAvatar: { width: 65, height: 65, borderRadius: 35, alignItems: 'center', justifyContent: 'center' },
+  profileAvatar: { width: 65, height: 65, borderRadius: 35, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  editBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#38BDF8', padding: 4, borderRadius: 10, borderWidth: 2, borderColor: '#020617' },
+  inputInline: { borderBottomWidth: 2, paddingVertical: 4, fontSize: 16, marginBottom: 8 },
+  btnSaveProfile: { backgroundColor: '#38BDF8', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, alignSelf: 'flex-start' },
   profileLabel: { fontSize: 14, fontWeight: '500' },
   profileEmail: { fontSize: 18, fontWeight: 'bold' },
   miniStatsRow: { flexDirection: 'row', padding: 15, borderRadius: 15, borderWidth: 1, marginBottom: 15 },

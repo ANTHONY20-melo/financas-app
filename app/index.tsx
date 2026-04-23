@@ -15,6 +15,7 @@ export default function LandingPage() {
   const testimonialWidth = 320; // largura do card + gap
 
   const entryAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(entryAnim, {
@@ -22,6 +23,14 @@ export default function LandingPage() {
       duration: 1000,
       useNativeDriver: true,
     }).start();
+
+    // Animação de flutuação para elementos decorativos
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 2000, useNativeDriver: true }),
+      ])
+    ).start();
   }, []);
 
   useEffect(() => {
@@ -83,12 +92,25 @@ export default function LandingPage() {
       </View>
 
       {/* Hero Section */}
-      <View style={[
-        styles.heroSection,
-      ]}>
+      <View style={styles.heroSection}>
+        {/* Elementos Inovadores Flutuantes */}
+        {Platform.OS === 'web' && (
+          <>
+            <Animated.View style={[styles.floatingIcon, { top: 0, left: -50, transform: [{ translateY: floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) }] }]}>
+              <Ionicons name="cash-outline" size={40} color="#10B981" />
+            </Animated.View>
+            <Animated.View style={[styles.floatingIcon, { bottom: 100, right: -50, transform: [{ translateY: floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 20] }) }] }]}>
+              <Ionicons name="stats-chart-outline" size={40} color="#38BDF8" />
+            </Animated.View>
+          </>
+        )}
+
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>🚀 Inteligência Financeira Simples</Text>
+          <Animated.View style={{ opacity: floatAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0.5, 1] }) }}>
+            <Text style={styles.badgeText}>🚀 Inteligência Financeira Simples</Text>
+          </Animated.View>
         </View>
+
         <Text style={[styles.heroTitle, { fontSize: width > 600 ? 56 : 40 }]}>
           O controle do seu dinheiro,{'\n'}
           <Text style={{ color: '#38BDF8' }}>na palma da sua mão.</Text>
@@ -215,6 +237,7 @@ const styles = StyleSheet.create({
   btnPrimary: { backgroundColor: '#38BDF8', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
   btnPrimaryText: { color: '#020617', fontWeight: 'bold', fontSize: 16 },
   heroSection: { width: '100%', maxWidth: 800, alignItems: 'center', paddingHorizontal: 20, marginTop: 60, marginBottom: 80 },
+  floatingIcon: { position: 'absolute', opacity: 0.4, zIndex: -1 },
   badge: { backgroundColor: 'rgba(56, 189, 248, 0.1)', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.3)' },
   badgeText: { color: '#38BDF8', fontWeight: 'bold', fontSize: 14 },
   heroTitle: { color: '#FFF', fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
