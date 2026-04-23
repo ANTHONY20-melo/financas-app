@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, useWindowDimensions } from 'react-native'; // Adicionado useWindowDimensions
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,27 @@ export default function LandingPage() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { width } = useWindowDimensions(); // Agora a largura é detectada aqui dentro, de forma segura
+  
+  // Lógica do Carrossel
+  const testimonialScrollRef = useRef<ScrollView>(null);
+  const [scrollPos, setScrollRef] = useState(0);
+  const testimonialWidth = 320; // largura do card + gap
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && width > 800) {
+      const interval = setInterval(() => {
+        setScrollRef((prev) => {
+          const next = prev + testimonialWidth;
+          // Se chegar ao fim (3 cards), volta ao início
+          const maxScroll = testimonialWidth * 2; 
+          const finalPos = next > maxScroll ? 0 : next;
+          testimonialScrollRef.current?.scrollTo({ x: finalPos, animated: true });
+          return finalPos;
+        });
+      }, 3000); // Muda a cada 3 segundos
+      return () => clearInterval(interval);
+    }
+  }, [width]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -90,6 +111,75 @@ export default function LandingPage() {
         </View>
       </View>
 
+      {/* How it Works Section */}
+      <View style={[styles.howItWorksSection, { width: width > 800 ? '80%' : '100%' }]}>
+        <Text style={styles.sectionTitle}>O caminho para a sua saúde financeira</Text>
+        <View style={[styles.stepsContainer, { flexDirection: width > 800 ? 'row' : 'column' }]}>
+          <View style={styles.stepCard}>
+            <View style={styles.stepNumber}><Text style={styles.stepNumberText}>1</Text></View>
+            <Text style={styles.stepTitle}>Registo Rápido</Text>
+            <Text style={styles.stepDesc}>Crie a sua conta em segundos e comece a organizar-se hoje mesmo.</Text>
+          </View>
+          <View style={styles.stepCard}>
+            <View style={styles.stepNumber}><Text style={styles.stepNumberText}>2</Text></View>
+            <Text style={styles.stepTitle}>Lance Gastos</Text>
+            <Text style={styles.stepDesc}>Registe cada despesa no momento em que ela acontece, de forma simples.</Text>
+          </View>
+          <View style={styles.stepCard}>
+            <View style={styles.stepNumber}><Text style={styles.stepNumberText}>3</Text></View>
+            <Text style={styles.stepTitle}>Evolua com IA</Text>
+            <Text style={styles.stepDesc}>Receba insights poderosos da nossa inteligência para economizar mais.</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Testimonials Section */}
+      <View style={styles.testimonialsSection}>
+        <Text style={styles.sectionTitle}>O que dizem os nossos utilizadores</Text>
+        <ScrollView 
+          ref={testimonialScrollRef}
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={[styles.testimonialScroll, width > 800 && { justifyContent: 'center', width: '100%' }]}
+          scrollEnabled={width <= 800} // Desativa manual no PC para o auto-carrossel brilhar
+        >
+          <View style={styles.testimonialCard}>
+            <View style={styles.stars}><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /></View>
+            <Text style={styles.testimonialText}>"Finalmente consegui entender para onde ia o meu dinheiro no final do mês. App nota 10!"</Text>
+            <Text style={styles.testimonialAuthor}>— Ricardo M., Designer</Text>
+          </View>
+          <View style={styles.testimonialCard}>
+            <View style={styles.stars}><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /></View>
+            <Text style={styles.testimonialText}>"O Conselheiro IA me ajudou a cortar 150€ em assinaturas que eu nem usava mais."</Text>
+            <Text style={styles.testimonialAuthor}>— Sofia G., Médica</Text>
+          </View>
+          <View style={styles.testimonialCard}>
+            <View style={styles.stars}><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /><Ionicons name="star" size={16} color="#F59E0B" /></View>
+            <Text style={styles.testimonialText}>"Rachar as contas do jantar pelo WhatsApp poupa-me imenso tempo de conversa."</Text>
+            <Text style={styles.testimonialAuthor}>— André L., Estudante</Text>
+          </View>
+        </ScrollView>
+      </View>
+
+      {/* FAQ Section */}
+      <View style={[styles.faqSection, { width: width > 800 ? 800 : '100%' }]}>
+        <Text style={styles.sectionTitle}>Perguntas Frequentes</Text>
+        <View style={styles.faqList}>
+          <View style={styles.faqItem}>
+            <Text style={styles.faqQuestion}>Os meus dados bancários estão seguros?</Text>
+            <Text style={styles.faqAnswer}>Nós não pedimos senhas de banco. Você apenas regista o que gasta manualmente, mantendo total privacidade.</Text>
+          </View>
+          <View style={styles.faqItem}>
+            <Text style={styles.faqQuestion}>O My Money App é gratuito?</Text>
+            <Text style={styles.faqAnswer}>Sim! A versão atual com todas as funcionalidades de IA e WhatsApp é 100% gratuita.</Text>
+          </View>
+          <View style={styles.faqItem}>
+            <Text style={styles.faqQuestion}>Posso exportar os meus relatórios?</Text>
+            <Text style={styles.faqAnswer}>Com certeza. Dentro do painel, você pode gerar PDFs detalhados para o seu controle pessoal.</Text>
+          </View>
+        </View>
+      </View>
+
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>© 2026 My Money App. Todos os direitos reservados.</Text>
@@ -121,6 +211,25 @@ const styles = StyleSheet.create({
   featureCard: { backgroundColor: '#0F172A', padding: 30, borderRadius: 20, maxWidth: 350, borderWidth: 1, borderColor: '#1E293B', alignItems: 'center' },
   featureTitle: { color: '#FFF', fontSize: 20, fontWeight: 'bold', marginTop: 15, marginBottom: 10, textAlign: 'center' },
   featureDesc: { color: '#94A3B8', fontSize: 14, textAlign: 'center', lineHeight: 22 },
-  footer: { width: '100%', borderTopWidth: 1, borderColor: '#1E293B', padding: 30, alignItems: 'center', marginTop: 'auto' },
+  sectionTitle: { color: '#FFF', fontSize: 32, fontWeight: 'bold', marginBottom: 40, textAlign: 'center', paddingHorizontal: 20 },
+  howItWorksSection: { maxWidth: 1200, paddingHorizontal: 20, marginBottom: 100, alignItems: 'center' },
+  stepsContainer: { justifyContent: 'center', gap: 30, width: '100%' },
+  stepCard: { flex: 1, alignItems: 'center', padding: 20 },
+  stepNumber: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#38BDF8', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  stepNumberText: { color: '#020617', fontWeight: 'bold', fontSize: 20 },
+  stepTitle: { color: '#FFF', fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  stepDesc: { color: '#94A3B8', fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  testimonialsSection: { width: '100%', marginBottom: 100 },
+  testimonialScroll: { paddingHorizontal: 20, gap: 20 },
+  testimonialCard: { backgroundColor: '#0F172A', padding: 25, borderRadius: 20, width: 300, borderWidth: 1, borderColor: '#1E293B' },
+  stars: { flexDirection: 'row', gap: 2, marginBottom: 15 },
+  testimonialText: { color: '#FFF', fontSize: 15, fontStyle: 'italic', marginBottom: 15, lineHeight: 24 },
+  testimonialAuthor: { color: '#38BDF8', fontWeight: 'bold' },
+  faqSection: { maxWidth: 800, paddingHorizontal: 20, marginBottom: 100 },
+  faqList: { gap: 20 },
+  faqItem: { backgroundColor: '#0F172A', padding: 20, borderRadius: 15, borderWidth: 1, borderColor: '#1E293B' },
+  faqQuestion: { color: '#FFF', fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
+  faqAnswer: { color: '#94A3B8', fontSize: 14, lineHeight: 22 },
+  footer: { width: '100%', borderTopWidth: 1, borderColor: '#1E293B', padding: 30, alignItems: 'center' },
   footerText: { color: '#64748B', fontSize: 14 }
 });
