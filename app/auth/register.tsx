@@ -45,7 +45,16 @@ export default function Register() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#020617', justifyContent: 'center', padding: 20 },
-  content: { backgroundColor: '#0F172A', padding: 25, borderRadius: 20, borderWidth: 1, borderColor: '#334155' },
+  content: { 
+    backgroundColor: '#0F172A', 
+    padding: 25, 
+    borderRadius: 20, 
+    borderWidth: 1, 
+    borderColor: '#334155',
+    maxWidth: 450,
+    width: '100%',
+    alignSelf: 'center'
+  },
   title: { fontSize: 28, fontWeight: 'bold', color: '#FFF', textAlign: 'center', marginBottom: 5 },
   subtitle: { fontSize: 16, color: '#94A3B8', textAlign: 'center', marginBottom: 30 },
   input: { backgroundColor: '#1E293B', color: '#FFF', padding: 15, borderRadius: 10, marginBottom: 15, borderWidth: 1, borderColor: '#334155' },
