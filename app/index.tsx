@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, useWindowDimensions, Animated, StatusBar } from 'react-native'; 
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, useWindowDimensions, Animated, StatusBar, Linking } from 'react-native'; 
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../supabase';
@@ -66,7 +66,7 @@ export default function LandingPage() {
 
   return (
     <Animated.View style={[styles.container, { opacity: entryAnim }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#020617" />
+      <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={false} />
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       
       {/* Header */}
@@ -76,6 +76,14 @@ export default function LandingPage() {
           <Text style={styles.logoText}>My Money</Text>
         </View>
         <View style={styles.navLinks}>
+          <TouchableOpacity 
+            onPress={() => Linking.openURL('https://wa.me/5571982998595?text=Olá! Estou no site e preciso de suporte técnico.')}
+            style={styles.btnSupportHeader}
+          >
+            <Ionicons name="chatbubble-ellipses" size={20} color="#10B981" />
+            {width > 600 && <Text style={styles.btnSupportText}>Suporte</Text>}
+          </TouchableOpacity>
+
           {isLoggedIn ? (
             <TouchableOpacity style={styles.btnPrimary} onPress={() => router.push('/dashboard' as any)}>
               <Text style={styles.btnPrimaryText}>Ir para o Painel</Text>
@@ -177,7 +185,7 @@ export default function LandingPage() {
           ref={testimonialScrollRef}
           horizontal 
           showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={[styles.testimonialScroll, width > 800 && { justifyContent: 'center' }]}
+          contentContainerStyle={[styles.testimonialScroll, width > 800 && { justifyContent: 'center', flexGrow: 1 }]}
           scrollEnabled={width <= 800} // Desativa manual no PC para o auto-carrossel brilhar
         >
           <View style={styles.testimonialCard}>
@@ -230,14 +238,16 @@ export default function LandingPage() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#020617' },
   scrollContent: { flexGrow: 1, alignItems: 'center' },
-  header: { width: '100%', maxWidth: 1200, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: Platform.OS === 'web' ? 20 : (Constants?.statusBarHeight || 0) + 10 },
+  header: { width: '100%', maxWidth: 1200, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: Platform.OS === 'web' ? 20 : (Constants?.statusBarHeight || 0) + 10, backgroundColor: '#020617' },
   logoContainer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoText: { color: '#FFF', fontSize: 24, fontWeight: 'bold' },
-  navLinks: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+  navLinks: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   btnLogin: { padding: 10 },
   btnLoginText: { color: '#94A3B8', fontWeight: 'bold', fontSize: 16 },
   btnPrimary: { backgroundColor: '#38BDF8', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
   btnPrimaryText: { color: '#020617', fontWeight: 'bold', fontSize: 16 },
+  btnSupportHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, padding: 8, borderRadius: 8, backgroundColor: 'rgba(16, 185, 129, 0.1)' },
+  btnSupportText: { color: '#10B981', fontWeight: 'bold', fontSize: 14 },
   heroSection: { width: '100%', maxWidth: 800, alignItems: 'center', paddingHorizontal: 20, marginTop: 60, marginBottom: 80 },
   floatingIcon: { position: 'absolute', opacity: 0.4, zIndex: -1 },
   badge: { backgroundColor: 'rgba(56, 189, 248, 0.1)', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.3)' },

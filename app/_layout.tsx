@@ -63,7 +63,7 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#020617' } }}>
       <Stack.Screen name="index" />          {/* Landing Page Pública */}
       <Stack.Screen name="dashboard" />      {/* Seu App Real */}
       <Stack.Screen name="admin" />          {/* Painel Admin */}
