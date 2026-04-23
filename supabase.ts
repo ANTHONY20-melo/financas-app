@@ -8,34 +8,30 @@ const supabaseAnonKey = 'sb_publishable_PTKxp_optBaXyBIXG-Idcg_JU-wUgq6';
 
 // Criamos um adaptador de armazenamento que entende a diferença entre App e Web
 const customStorage = {
-  // Adicionamos ': string' para avisar o TypeScript que a chave é um texto
-  getItem: (key: string) => {
+  getItem: async (key: string): Promise<string | null> => {
     if (Platform.OS === 'web') {
-      // Verifica se existe window/localStorage (evita erro no build da Vercel)
-      if (typeof window === 'undefined') return null;
-      return window.localStorage.getItem(key);
+      if (typeof localStorage === 'undefined') return null;
+      return localStorage.getItem(key);
     }
-    return SecureStore.getItemAsync(key);
+    return await SecureStore.getItemAsync(key);
   },
-  // Adicionamos ': string' na chave e no valor
-  setItem: (key: string, value: string) => {
+  setItem: async (key: string, value: string): Promise<void> => {
     if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, value);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(key, value);
       }
-      return;
+    } else {
+      await SecureStore.setItemAsync(key, value);
     }
-    return SecureStore.setItemAsync(key, value);
   },
-  // Adicionamos ': string' na chave
-  removeItem: (key: string) => {
+  removeItem: async (key: string): Promise<void> => {
     if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined') {
-        window.localStorage.removeItem(key);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(key);
       }
-      return;
+    } else {
+      await SecureStore.deleteItemAsync(key);
     }
-    return SecureStore.deleteItemAsync(key);
   },
 };
 
