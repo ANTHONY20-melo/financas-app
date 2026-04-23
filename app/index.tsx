@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, useWindowDimensions, Animated } from 'react-native'; 
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform, useWindowDimensions, Animated, StatusBar } from 'react-native'; 
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../supabase';
+import Constants from 'expo-constants';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -65,7 +66,8 @@ export default function LandingPage() {
 
   return (
     <Animated.View style={[styles.container, { opacity: entryAnim }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <StatusBar barStyle="light-content" backgroundColor="#020617" />
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       
       {/* Header */}
       <View style={styles.header}>
@@ -175,7 +177,7 @@ export default function LandingPage() {
           ref={testimonialScrollRef}
           horizontal 
           showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={[styles.testimonialScroll, width > 800 && { justifyContent: 'center', width: '100%' }]}
+          contentContainerStyle={[styles.testimonialScroll, width > 800 && { justifyContent: 'center' }]}
           scrollEnabled={width <= 800} // Desativa manual no PC para o auto-carrossel brilhar
         >
           <View style={styles.testimonialCard}>
@@ -228,7 +230,7 @@ export default function LandingPage() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#020617' },
   scrollContent: { flexGrow: 1, alignItems: 'center' },
-  header: { width: '100%', maxWidth: 1200, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, marginTop: Platform.OS === 'web' ? 0 : 40 },
+  header: { width: '100%', maxWidth: 1200, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: Platform.OS === 'web' ? 20 : (Constants?.statusBarHeight || 0) + 10 },
   logoContainer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoText: { color: '#FFF', fontSize: 24, fontWeight: 'bold' },
   navLinks: { flexDirection: 'row', alignItems: 'center', gap: 15 },

@@ -160,6 +160,7 @@ export default function HomeScreen() {
       });
 
       if (error) throw error;
+      await fetchTransacoes(); // Refresh data to show updated username
       setIsEditingProfile(false);
       
       if (Platform.OS === 'web') window.alert("Perfil atualizado com sucesso!");
@@ -550,19 +551,17 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {isInSidebar && (
-        <TouchableOpacity 
-          style={[styles.settingsRow, { borderColor: cores.borda }]} 
-          onPress={() => Linking.openURL(`https://wa.me/5571982998595?text=${encodeURIComponent(
-            `Olá Suporte! 👋\n\nPreciso de ajuda com o My Money App.\nUtilizador: ${userName}\nE-mail: ${userEmail}`
-          )}`)}
-        >
-          <View style={styles.settingsInfo}>
-            <Ionicons name="chatbubble-ellipses-outline" size={22} color="#10B981" />
-            <Text style={[styles.settingsText, { color: cores.texto }]}>Suporte Técnico</Text>
-          </View>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity 
+        style={[styles.settingsRow, { borderColor: cores.borda }]} 
+        onPress={() => Linking.openURL(`https://wa.me/5571982998595?text=${encodeURIComponent(
+          `Olá Suporte! 👋\n\nPreciso de ajuda com o My Money App.\nUtilizador: ${userName}\nE-mail: ${userEmail}`
+        )}`)}
+      >
+        <View style={styles.settingsInfo}>
+          <Ionicons name="chatbubble-ellipses-outline" size={22} color="#10B981" />
+          <Text style={[styles.settingsText, { color: cores.texto }]}>Suporte Técnico</Text>
+        </View>
+      </TouchableOpacity>
 
       <View style={[styles.miniStatsRow, { backgroundColor: cores.cardSecundario, borderColor: cores.borda, padding: isInSidebar ? 12 : 15, marginBottom: 20 }]}>
         <View style={styles.miniStatItem}>
@@ -908,7 +907,7 @@ const styles = StyleSheet.create({
   sidebarProfile: { marginBottom: 30, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#334155' },
   sidebarInner: { gap: 5 },
   headerFixoContainer: { zIndex: 10, elevation: 5, backgroundColor: 'transparent', width: '100%', maxWidth: DASHBOARD_MAX_WIDTH, alignSelf: 'center' },
-  headerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: Constants.statusBarHeight + 10, marginBottom: 20, paddingHorizontal: 20, width: '100%' },
+  headerContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: (Constants.statusBarHeight || 0) + 10, marginBottom: 20, paddingHorizontal: 20, width: '100%' },
   titulo: { fontSize: 26, fontWeight: 'bold' },
   btnTop: { padding: 8, borderRadius: 12, borderWidth: 1 },
   anoContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 20, marginBottom: 15 },

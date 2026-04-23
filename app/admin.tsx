@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     justifyContent: 'space-between', 
     alignItems: 'center', 
-    paddingTop: Constants.statusBarHeight + 20, 
+    paddingTop: (Constants.statusBarHeight || 0) + 20, 
     marginBottom: 30 
   },
   title: { color: '#FFF', fontSize: 24, fontWeight: 'bold' },
