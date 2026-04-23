@@ -1,20 +1,44 @@
 import 'react-native-url-polyfill/auto';
 import * as SecureStore from 'expo-secure-store';
 import { createClient } from '@supabase/supabase-js';
+import { Platform } from 'react-native';
 
-// Adaptador para guardar a sessão de forma segura no telemóvel
-const ExpoSecureStoreAdapter = {
-  getItem: (key) => SecureStore.getItemAsync(key),
-  setItem: (key, value) => SecureStore.setItemAsync(key, value),
-  removeItem: (key) => SecureStore.deleteItemAsync(key),
+const supabaseUrl = 'COLOQUE_SUA_URL_AQUI';
+const supabaseAnonKey = 'COLOQUE_SUA_KEY_AQUI';
+
+// Criamos um adaptador de armazenamento que entende a diferença entre App e Web
+const customStorage = {
+  getItem: (key) => {
+    if (Platform.OS === 'web') {
+      // Verifica se existe window/localStorage (evita erro no build da Vercel)
+      if (typeof window === 'undefined') return null;
+      return window.localStorage.getItem(key);
+    }
+    return SecureStore.getItemAsync(key);
+  },
+  setItem: (key, value) => {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(key, value);
+      }
+      return;
+    }
+    return SecureStore.setItemAsync(key, value);
+  },
+  removeItem: (key) => {
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(key);
+      }
+      return;
+    }
+    return SecureStore.deleteItemAsync(key);
+  },
 };
-
-const supabaseUrl = 'https://rqhpzpaadpwjswpfpilv.supabase.co';
-const supabaseAnonKey = 'sb_publishable_PTKxp_optBaXyBIXG-Idcg_JU-wUgq6';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: ExpoSecureStoreAdapter,
+    storage: customStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
