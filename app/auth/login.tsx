@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar, Linking } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar, Linking, Animated } from 'react-native';
 import { supabase } from '../../supabase';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,22 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  
+  // Animação de Fundo
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(floatAnim, { toValue: 1, duration: 3000, useNativeDriver: true }),
+          Animated.timing(floatAnim, { toValue: 0, duration: 3000, useNativeDriver: true }),
+        ])
+      )
+    ]).start();
+  }, []);
 
   async function fazerLogin() {
     if (!email || !password) return Alert.alert('Aviso', 'Preenche todos os campos.');
@@ -36,8 +52,20 @@ export default function Login() {
   }
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
       <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={false} />
+      
+      {/* Partículas de Fundo Inovadoras */}
+      <Animated.View style={[styles.particle, { top: '10%', left: '10%', transform: [{ translateY: floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 20] }) }] }]}>
+        <Ionicons name="cash-outline" size={40} color="#10B98120" />
+      </Animated.View>
+      <Animated.View style={[styles.particle, { bottom: '15%', right: '15%', transform: [{ translateY: floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -30] }) }] }]}>
+        <Ionicons name="card-outline" size={50} color="#38BDF820" />
+      </Animated.View>
+      <Animated.View style={[styles.particle, { top: '40%', right: '5%', transform: [{ translateX: floatAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 15] }) }] }]}>
+        <Ionicons name="trending-up-outline" size={30} color="#8B5CF620" />
+      </Animated.View>
+
       <View style={styles.content}>
         <Ionicons name="wallet" size={80} color="#38BDF8" style={{ alignSelf: 'center', marginBottom: 20 }} />
         <Text style={styles.title}>My Money</Text>
@@ -60,12 +88,13 @@ export default function Login() {
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#020617', justifyContent: 'center', padding: 20 },
+  particle: { position: 'absolute', zIndex: -1 },
   content: { 
     backgroundColor: '#0F172A', 
     padding: 25, 

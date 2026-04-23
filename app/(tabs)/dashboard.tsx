@@ -122,6 +122,25 @@ export default function HomeScreen() {
     setLoading(false);
   };
 
+  // INOVAÇÃO: Detecção Inteligente de Categorias
+  useEffect(() => {
+    const desc = descricao.toLowerCase();
+    if (tipoAtual === 'despesa') {
+      if (desc.includes('pizza') || desc.includes('comer') || desc.includes('restaurante') || desc.includes('ifood') || desc.includes('mercado')) 
+        setCategoriaSel('Alimentação');
+      else if (desc.includes('uber') || desc.includes('gasolina') || desc.includes('combustivel') || desc.includes('carro') || desc.includes('autocarro')) 
+        setCategoriaSel('Transporte');
+      else if (desc.includes('net') || desc.includes('luz') || desc.includes('agua') || desc.includes('aluguer') || desc.includes('renda')) 
+        setCategoriaSel('Contas');
+      else if (desc.includes('cinema') || desc.includes('show') || desc.includes('festa') || desc.includes('cerveja') || desc.includes('bebe')) 
+        setCategoriaSel('Lazer');
+      else if (desc.includes('farmacia') || desc.includes('medico') || desc.includes('hospital')) 
+        setCategoriaSel('Saúde');
+      else if (desc.includes('curso') || desc.includes('livro') || desc.includes('faculdade')) 
+        setCategoriaSel('Educação');
+    }
+  }, [descricao]);
+
   const confirmarLogout = () => {
     const logout = async () => {
       await supabase.auth.signOut();
@@ -156,14 +175,17 @@ export default function HomeScreen() {
       const { error } = await supabase.from('profiles').upsert({
         id: session.user.id,
         full_name: userName,
-        email: userEmail // Incluído para garantir que o perfil seja criado/atualizado corretamente
+        email: userEmail 
       });
 
       if (error) throw error;
       await fetchTransacoes(); // Refresh data to show updated username
       setIsEditingProfile(false);
+      Keyboard.dismiss();
       
-      if (Platform.OS === 'web') window.alert("Perfil atualizado com sucesso!");
+      if (Platform.OS === 'web') {
+        window.alert("Perfil atualizado com sucesso!");
+      }
       else Alert.alert("Sucesso", "Perfil atualizado!");
     } catch (err: any) { 
       if (Platform.OS === 'web') window.alert("Erro ao atualizar perfil.");
@@ -209,14 +231,6 @@ export default function HomeScreen() {
   };
 
   const apagarTransacao = async (id: number) => {
-    Alert.alert("Apagar", "Remover este registo?", [
-      { text: "Não", style: "cancel" },
-      { text: "Sim", style: "destructive", onPress: async () => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        const { error } = await supabase.from('transacoes').delete().eq('id', id);
-        if (!error) setTransacoes(transacoes.filter(t => t.id !== id));
-      }}
-    ]);
     const deletar = async () => {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       const { error } = await supabase.from('transacoes').delete().eq('id', id);
@@ -392,7 +406,7 @@ export default function HomeScreen() {
         {!isPC && (
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <TouchableOpacity onPress={() => setSettingsModalVisivel(true)} style={[styles.btnTop, { backgroundColor: cores.cardSecundario, borderColor: cores.borda }]}>
-              <Ionicons name="settings-outline" size={24} color="#38BDF8" />
+              <Ionicons name="menu-outline" size={26} color="#38BDF8" />
             </TouchableOpacity>
           </View>
         )}
@@ -518,7 +532,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           {isEditingProfile ? (
-            <View style={{ gap: 5 }}>
+            <View style={{ gap: 8 }}>
               <TextInput 
                 style={[styles.inputInline, { color: cores.texto, borderColor: '#38BDF8' }]} 
                 value={userName} 
@@ -526,12 +540,12 @@ export default function HomeScreen() {
                 placeholder="Teu nome" 
                 placeholderTextColor={cores.subtexto} 
               />
-              <TouchableOpacity onPress={atualizarPerfil} style={styles.btnSaveProfile}><Text style={{ color: '#020617', fontWeight: 'bold', fontSize: 12 }}>Guardar Alterações</Text></TouchableOpacity>
+              <TouchableOpacity onPress={atualizarPerfil} style={styles.btnSaveProfile}><Text style={{ color: '#020617', fontWeight: 'bold', fontSize: 13 }}>Guardar</Text></TouchableOpacity>
             </View>
           ) : (
             <>
               <Text style={[styles.profileLabel, { color: cores.subtexto, fontSize: isInSidebar ? 12 : 14 }]}>
-                {isInSidebar ? 'Utilizador' : 'Bem-vindo,'}
+                {isInSidebar ? 'Utilizador' : 'Olá,'}
               </Text>
               <Text style={[styles.profileEmail, { color: cores.texto, fontSize: isInSidebar ? 14 : 18 }]} numberOfLines={1}>
                 {userName}
@@ -554,13 +568,14 @@ export default function HomeScreen() {
       <TouchableOpacity 
         style={[styles.settingsRow, { borderColor: cores.borda }]} 
         onPress={() => Linking.openURL(`https://wa.me/5571982998595?text=${encodeURIComponent(
-          `Olá Suporte! 👋\n\nPreciso de ajuda com o My Money App.\nUtilizador: ${userName}\nE-mail: ${userEmail}`
+          `Olá Suporte! 👋\nPreciso de ajuda com o My Money App.\nUtilizador: ${userName}\nE-mail: ${userEmail}`
         )}`)}
       >
         <View style={styles.settingsInfo}>
           <Ionicons name="chatbubble-ellipses-outline" size={22} color="#10B981" />
           <Text style={[styles.settingsText, { color: cores.texto }]}>Suporte Técnico</Text>
         </View>
+        <Ionicons name="chevron-forward" size={20} color={cores.subtexto} />
       </TouchableOpacity>
 
       <View style={[styles.miniStatsRow, { backgroundColor: cores.cardSecundario, borderColor: cores.borda, padding: isInSidebar ? 12 : 15, marginBottom: 20 }]}>
@@ -627,7 +642,7 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id.toString()} 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={{ paddingBottom: 100 }}
-        style={{ backgroundColor: cores.fundo }}
+        style={{ backgroundColor: cores.fundo, marginTop: 10 }}
         ListHeaderComponent={renderResumoLista}
         ListEmptyComponent={<Text style={{ color: cores.subtexto, textAlign: 'center', marginTop: 40, fontSize: 16 }}>Nenhum registo encontrado.</Text>}
         refreshing={loading}
@@ -642,13 +657,13 @@ export default function HomeScreen() {
                   color={item.tipo === 'receita' ? '#10B981' : '#EF4444'} 
                 />
               </View>
-              <View style={{ flex: 1, justifyContent: 'center', paddingRight: 15 }}>
+              <View style={{ flex: 1, justifyContent: 'center', paddingRight: 10 }}>
                 <Text style={[styles.itemDesc, { color: cores.texto }]} numberOfLines={1}>{item.descricao}</Text>
                 <Text style={styles.itemData}>{item.data} • {item.categoria || 'Geral'}</Text>
               </View>
-              <View style={styles.itemDireita}>
-                <Text style={[styles.itemValor, { color: item.tipo === 'receita' ? '#10B981' : '#EF4444' }]}>{item.tipo === 'receita' ? '+' : '-'} {formatarMoeda(item.valor)}</Text>
-                <View style={styles.itemAcoes}>
+              <View style={[styles.itemDireita, { alignItems: 'center' }]}>
+                <Text style={[styles.itemValor, { color: item.tipo === 'receita' ? '#10B981' : '#EF4444', fontSize: 15 }]}>{item.tipo === 'receita' ? '+' : '-'} {formatarMoeda(item.valor)}</Text>
+                <View style={[styles.itemAcoes, { marginLeft: 5 }]}>
                   {item.tipo === 'despesa' ? (
                     <TouchableOpacity onPress={() => { setSplitTransacao(item); setQtdPessoas('2'); setSplitModalVisivel(true); }} style={styles.btnAcaoLista}>
                       <Ionicons name="people-outline" size={20} color="#38BDF8" />
@@ -944,13 +959,16 @@ const styles = StyleSheet.create({
   itemDesc: { fontSize: 15, fontWeight: 'bold', lineHeight: 20 },
   itemData: { fontSize: 12, color: '#64748B', marginTop: 3, lineHeight: 16 },
   itemDireita: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
-  itemValor: { fontSize: 14, fontWeight: 'bold', textAlign: 'right', minWidth: 85 },
-  itemAcoes: { flexDirection: 'row', alignItems: 'center', marginLeft: 5, gap: 5 },
+  itemValor: { fontSize: 15, fontWeight: 'bold', textAlign: 'right', minWidth: 85 },
+  itemAcoes: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   btnAcaoLista: { padding: 4 },
   searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, paddingHorizontal: 15, height: 45, borderRadius: 12, borderWidth: 1, marginBottom: 15, maxWidth: DASHBOARD_MAX_WIDTH - 40, alignSelf: 'center', width: '100%' },
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
   fab: { position: 'absolute', bottom: 30, right: 30, width: 65, height: 65, borderRadius: 35, backgroundColor: '#38BDF8', alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#38BDF8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', flexDirection: 'row', justifyContent: Platform.OS === 'web' ? 'center' : 'flex-start' },
+  modalDrawerOverlay: { position: 'absolute', width: '100%', height: '100%' },
+  drawerBody: { width: '80%', height: '100%', padding: 25, paddingTop: 50, borderRightWidth: 1 },
+  drawerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },
   modalBody: { padding: 25, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderWidth: 1, width: '100%', maxWidth: 500, alignSelf: 'center' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 22, fontWeight: 'bold' },

@@ -15,10 +15,23 @@ export default function RootLayout() {
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setIsReady(true);
-    });
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        setSession(session);
+      } catch (error: any) {
+        // Se houver erro de token inválido, limpamos a sessão localmente
+        if (error.message?.includes('Refresh Token')) {
+          await supabase.auth.signOut();
+        }
+        setSession(null);
+      } finally {
+        setIsReady(true);
+      }
+    };
+
+    checkSession();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);

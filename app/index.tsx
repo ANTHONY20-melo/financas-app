@@ -225,6 +225,26 @@ export default function LandingPage() {
         </View>
       </View>
 
+      {/* Innovation: Tech Stack Section */}
+      <View style={styles.techSection}>
+        <Text style={styles.techLabel}>CONSTRUÍDO COM TECNOLOGIA DE PONTA</Text>
+        <View style={styles.techIcons}>
+          <View style={styles.techItem}><Ionicons name="shield-checkmark" size={24} color="#10B981" /><Text style={styles.techText}>Supabase RLS</Text></View>
+          <View style={styles.techItem}><Ionicons name="flash" size={24} color="#F59E0B" /><Text style={styles.techText}>Real-time Sync</Text></View>
+          <View style={styles.techItem}><Ionicons name="logo-react" size={24} color="#38BDF8" /><Text style={styles.techText}>Native UI</Text></View>
+        </View>
+      </View>
+
+      {/* Innovation: Final CTA Banner */}
+      <View style={[styles.finalCTA, { width: width > 800 ? '80%' : '90%' }]}>
+        <Text style={styles.finalCTATitle}>Pronto para mudar a sua vida?</Text>
+        <Text style={styles.finalCTASubtitle}>Junte-se a centenas de pessoas que já simplificaram as suas finanças.</Text>
+        <TouchableOpacity style={styles.btnPrimaryLarge} onPress={handleCTA}>
+          <Text style={styles.btnPrimaryTextLarge}>Criar minha conta agora</Text>
+          <Ionicons name="rocket" size={20} color="#020617" style={{ marginLeft: 10 }} />
+        </TouchableOpacity>
+      </View>
+
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>© 2026 My Money App. Todos os direitos reservados.</Text>
@@ -237,7 +257,7 @@ export default function LandingPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#020617' },
-  scrollContent: { flexGrow: 1, alignItems: 'center' },
+  scrollContent: { flexGrow: 1, alignItems: 'center', paddingBottom: 60 },
   header: { width: '100%', maxWidth: 1200, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: Platform.OS === 'web' ? 20 : (Constants?.statusBarHeight || 0) + 10, backgroundColor: '#020617' },
   logoContainer: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoText: { color: '#FFF', fontSize: 24, fontWeight: 'bold' },
@@ -248,7 +268,7 @@ const styles = StyleSheet.create({
   btnPrimaryText: { color: '#020617', fontWeight: 'bold', fontSize: 16 },
   btnSupportHeader: { flexDirection: 'row', alignItems: 'center', gap: 5, padding: 8, borderRadius: 8, backgroundColor: 'rgba(16, 185, 129, 0.1)' },
   btnSupportText: { color: '#10B981', fontWeight: 'bold', fontSize: 14 },
-  heroSection: { width: '100%', maxWidth: 800, alignItems: 'center', paddingHorizontal: 20, marginTop: 60, marginBottom: 80 },
+  heroSection: { width: '100%', maxWidth: 800, alignItems: 'center', paddingHorizontal: 20, marginTop: 40, marginBottom: 100 },
   floatingIcon: { position: 'absolute', opacity: 0.4, zIndex: -1 },
   badge: { backgroundColor: 'rgba(56, 189, 248, 0.1)', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.3)' },
   badgeText: { color: '#38BDF8', fontWeight: 'bold', fontSize: 14 },
@@ -280,5 +300,15 @@ const styles = StyleSheet.create({
   faqQuestion: { color: '#FFF', fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
   faqAnswer: { color: '#94A3B8', fontSize: 14, lineHeight: 22 },
   footer: { width: '100%', borderTopWidth: 1, borderColor: '#1E293B', padding: 30, alignItems: 'center' },
-  footerText: { color: '#64748B', fontSize: 14 }
+  footerText: { color: '#64748B', fontSize: 14 },
+  techSection: { alignItems: 'center', marginBottom: 100, opacity: 0.8 },
+  techLabel: { color: '#64748B', fontSize: 12, fontWeight: 'bold', letterSpacing: 2, marginBottom: 25 },
+  techIcons: { flexDirection: 'row', gap: 30, flexWrap: 'wrap', justifyContent: 'center' },
+  techItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  techText: { color: '#FFF', fontSize: 16, fontWeight: '500' },
+  finalCTA: { backgroundColor: '#0F172A', padding: 50, borderRadius: 30, alignItems: 'center', marginBottom: 100, borderWidth: 1, borderColor: '#38BDF830', alignSelf: 'center' },
+  finalCTATitle: { color: '#FFF', fontSize: 28, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
+  finalCTASubtitle: { color: '#94A3B8', fontSize: 16, textAlign: 'center', marginBottom: 30 },
+  btnPrimaryLarge: { backgroundColor: '#38BDF8', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 40, paddingVertical: 18, borderRadius: 15 },
+  btnPrimaryTextLarge: { color: '#020617', fontWeight: 'bold', fontSize: 18 }
 });
