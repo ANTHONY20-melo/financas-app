@@ -70,12 +70,12 @@ export default function LandingPage() {
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingHorizontal: width > 600 ? 20 : 12 }]}>
         <View style={styles.logoContainer}>
-          <Ionicons name="wallet" size={32} color="#38BDF8" />
-          <Text style={styles.logoText}>My Money</Text>
+          <Ionicons name="wallet" size={width > 400 ? 32 : 28} color="#38BDF8" />
+          <Text style={[styles.logoText, { fontSize: width > 400 ? 24 : 18 }]}>My Money</Text>
         </View>
-        <View style={styles.navLinks}>
+        <View style={[styles.navLinks, { gap: width > 400 ? 10 : 6 }]}>
           <TouchableOpacity 
             onPress={() => Linking.openURL('https://wa.me/5571982998595?text=Olá! Estou no site e preciso de suporte técnico.')}
             style={styles.btnSupportHeader}
@@ -91,10 +91,10 @@ export default function LandingPage() {
           ) : (
             <>
               <TouchableOpacity onPress={() => router.push('/auth/login' as any)} style={styles.btnLogin}>
-                <Text style={styles.btnLoginText}>Entrar</Text>
+                <Text style={[styles.btnLoginText, { fontSize: width > 400 ? 16 : 14 }]}>Entrar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.btnPrimary} onPress={() => router.push('/auth/register' as any)}>
-                <Text style={styles.btnPrimaryText}>Criar Conta</Text>
+              <TouchableOpacity style={[styles.btnPrimary, { paddingHorizontal: width > 400 ? 20 : 12 }]} onPress={() => router.push('/auth/register' as any)}>
+                <Text style={[styles.btnPrimaryText, { fontSize: width > 400 ? 16 : 14 }]}>Criar Conta</Text>
               </TouchableOpacity>
             </>
           )}
