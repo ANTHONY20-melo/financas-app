@@ -60,6 +60,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [updatingProfile, setUpdatingProfile] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const [descricao, setDescricao] = useState('');
   const [metaPoupanca, setMetaPoupanca] = useState('500'); // Nova meta padrão
@@ -122,6 +123,14 @@ export default function HomeScreen() {
     setLoading(false);
   };
 
+  // Cálculo inovador do valor da parcela
+  const valorParcelaPreview = useMemo(() => {
+    const v = parseFloat(valor.replace(',', '.'));
+    const p = parseInt(parcelas);
+    if (!v || !p || p <= 1 || !recorrente) return null;
+    return formatarMoeda(v / p);
+  }, [valor, parcelas, recorrente]);
+
   // INOVAÇÃO: Detecção Inteligente de Categorias
   useEffect(() => {
     const desc = descricao.toLowerCase();
@@ -168,13 +177,20 @@ export default function HomeScreen() {
   };
 
   const atualizarPerfil = async () => {
+    if (!userName.trim()) {
+      if (Platform.OS === 'web') window.alert("O nome não pode estar vazio.");
+      else Alert.alert("Aviso", "O nome não pode estar vazio.");
+      return;
+    }
+
+    setUpdatingProfile(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
       const { error } = await supabase.from('profiles').upsert({
         id: session.user.id,
-        full_name: userName,
+        full_name: userName.trim(),
         email: userEmail 
       });
 
@@ -190,6 +206,8 @@ export default function HomeScreen() {
     } catch (err: any) { 
       if (Platform.OS === 'web') window.alert("Erro ao atualizar perfil.");
       else Alert.alert("Erro", "Não foi possível atualizar o perfil."); 
+    } finally {
+      setUpdatingProfile(false);
     }
   };
 
@@ -539,10 +557,15 @@ export default function HomeScreen() {
                 onChangeText={setUserName} 
                 placeholder="Teu nome" 
                 placeholderTextColor={cores.subtexto} 
+                autoCapitalize="words"
               />
               <View style={{ flexDirection: 'row', gap: 10 }}>
-                <TouchableOpacity onPress={atualizarPerfil} style={styles.btnSaveProfile}>
-                  <Text style={{ color: '#020617', fontWeight: 'bold', fontSize: 13 }}>Guardar</Text>
+                <TouchableOpacity onPress={atualizarPerfil} style={styles.btnSaveProfile} disabled={updatingProfile}>
+                  {updatingProfile ? (
+                    <ActivityIndicator size="small" color="#020617" />
+                  ) : (
+                    <Text style={{ color: '#020617', fontWeight: 'bold', fontSize: 13 }}>Guardar</Text>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setIsEditingProfile(false)} style={[styles.btnSaveProfile, { backgroundColor: 'transparent', borderWidth: 1, borderColor: cores.borda }]}>
                   <Text style={{ color: cores.subtexto, fontSize: 13 }}>Cancelar</Text>
@@ -703,7 +726,7 @@ export default function HomeScreen() {
             <KeyboardAvoidingView 
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
               enabled={Platform.OS !== 'web'}
-              style={[styles.modalBody, isPC && { borderRadius: 25, borderBottomLeftRadius: 25, borderBottomRightRadius: 25 }]}
+              style={[styles.modalBody, { backgroundColor: cores.card, borderColor: cores.borda }, isPC && { borderRadius: 25, borderBottomLeftRadius: 25, borderBottomRightRadius: 25 }]}
               contentContainerStyle={{ alignItems: 'center' }}
             >
               <View style={styles.modalHeader}>
@@ -779,6 +802,11 @@ export default function HomeScreen() {
                       </TouchableOpacity>
                     ))}
                   </View>
+                  {valorParcelaPreview && (
+                    <View style={{ marginTop: 15, padding: 12, backgroundColor: '#38BDF815', borderRadius: 10, borderWidth: 1, borderColor: '#38BDF830' }}>
+                      <Text style={{ color: '#38BDF8', fontWeight: 'bold', textAlign: 'center' }}>Serão {parcelas}x de {valorParcelaPreview}</Text>
+                    </View>
+                  )}
                 </View>
               )}
               
@@ -969,13 +997,13 @@ const styles = StyleSheet.create({
   itemDesc: { fontSize: 15, fontWeight: 'bold', lineHeight: 20, flexShrink: 1 },
   itemData: { fontSize: 12, color: '#64748B', marginTop: 3, lineHeight: 16 },
   itemDireita: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
-  itemValor: { fontSize: 15, fontWeight: 'bold', textAlign: 'right', minWidth: 80 },
-  itemAcoes: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 5 },
+  itemValor: { fontSize: 15, fontWeight: 'bold', textAlign: 'right', minWidth: 90 },
+  itemAcoes: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 8 },
   btnAcaoLista: { padding: 4 },
   searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, paddingHorizontal: 15, height: 45, borderRadius: 12, borderWidth: 1, marginBottom: 15, maxWidth: DASHBOARD_MAX_WIDTH - 40, alignSelf: 'center', width: '100%' },
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
   fab: { position: 'absolute', bottom: 30, right: 30, width: 65, height: 65, borderRadius: 35, backgroundColor: '#38BDF8', alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#38BDF8', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', flexDirection: 'row', justifyContent: Platform.OS === 'web' ? 'center' : 'flex-start' },
+  modalOverlay: { flex: 1, backgroundColor: '#020617', flexDirection: 'row', justifyContent: Platform.OS === 'web' ? 'center' : 'flex-start' },
   modalDrawerOverlay: { position: 'absolute', width: '100%', height: '100%' },
   drawerBody: { width: '80%', height: '100%', padding: 25, paddingTop: 50, borderRightWidth: 1 },
   drawerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },
