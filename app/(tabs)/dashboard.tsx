@@ -540,17 +540,27 @@ export default function HomeScreen() {
                 placeholder="Teu nome" 
                 placeholderTextColor={cores.subtexto} 
               />
-              <TouchableOpacity onPress={atualizarPerfil} style={styles.btnSaveProfile}><Text style={{ color: '#020617', fontWeight: 'bold', fontSize: 13 }}>Guardar</Text></TouchableOpacity>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity onPress={atualizarPerfil} style={styles.btnSaveProfile}>
+                  <Text style={{ color: '#020617', fontWeight: 'bold', fontSize: 13 }}>Guardar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setIsEditingProfile(false)} style={[styles.btnSaveProfile, { backgroundColor: 'transparent', borderWidth: 1, borderColor: cores.borda }]}>
+                  <Text style={{ color: cores.subtexto, fontSize: 13 }}>Cancelar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : (
-            <>
+            <TouchableOpacity onPress={() => setIsEditingProfile(true)}>
               <Text style={[styles.profileLabel, { color: cores.subtexto, fontSize: isInSidebar ? 12 : 14 }]}>
                 {isInSidebar ? 'Utilizador' : 'Olá,'}
               </Text>
-              <Text style={[styles.profileEmail, { color: cores.texto, fontSize: isInSidebar ? 14 : 18 }]} numberOfLines={1}>
-                {userName}
-              </Text>
-            </>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Text style={[styles.profileEmail, { color: cores.texto, fontSize: isInSidebar ? 14 : 18 }]} numberOfLines={1}>
+                  {userName}
+                </Text>
+                <Ionicons name="pencil-outline" size={14} color="#38BDF8" />
+              </View>
+            </TouchableOpacity>
           )}
         </View>
       </View>
@@ -956,11 +966,11 @@ const styles = StyleSheet.create({
   containerItem: { paddingHorizontal: 20, width: '100%', maxWidth: DASHBOARD_MAX_WIDTH, alignSelf: 'center' },
   itemLista: { padding: 18, borderRadius: 15, flexDirection: 'row', marginBottom: 12, borderWidth: 1 },
   iconCategory: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 15 },
-  itemDesc: { fontSize: 15, fontWeight: 'bold', lineHeight: 20 },
+  itemDesc: { fontSize: 15, fontWeight: 'bold', lineHeight: 20, flexShrink: 1 },
   itemData: { fontSize: 12, color: '#64748B', marginTop: 3, lineHeight: 16 },
   itemDireita: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
-  itemValor: { fontSize: 15, fontWeight: 'bold', textAlign: 'right', minWidth: 85 },
-  itemAcoes: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  itemValor: { fontSize: 15, fontWeight: 'bold', textAlign: 'right', minWidth: 80 },
+  itemAcoes: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 5 },
   btnAcaoLista: { padding: 4 },
   searchBar: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 20, paddingHorizontal: 15, height: 45, borderRadius: 12, borderWidth: 1, marginBottom: 15, maxWidth: DASHBOARD_MAX_WIDTH - 40, alignSelf: 'center', width: '100%' },
   searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
